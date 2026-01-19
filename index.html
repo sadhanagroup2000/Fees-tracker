@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Fee Tracker & Receipt</title>
+    <style>
+        :root { --primary: #8914cc; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 20px; }
+        
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .login-box { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        .container { max-width: 600px; width: 100%; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px solid var(--primary); display: none; }
+        h2 { text-align: center; color: var(--primary); text-transform: uppercase; margin-top: 0; border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
+        
+        .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: var(--primary); margin: 25px 0 10px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 5px; }
+        .form-box { background: #fff; padding: 15px; border-radius: 15px; border: 1.5px solid var(--border); margin-bottom: 15px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; color: #475569; }
+        
+        input, select, textarea { width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 10px; box-sizing: border-box; font-size: 0.9rem; background: #fff; }
+        input:focus { outline: none; border-color: var(--primary); }
+        
+        .conditional-section { display: none; background: #fdf4ff; padding: 15px; border-radius: 12px; border: 1px dashed var(--primary); margin-bottom: 15px; }
+        
+        .btn { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; font-size: 1rem; }
+        .balance-box { background: #f1f5f9; padding: 15px; border-radius: 10px; font-weight: 800; color: #b91c1c; text-align: center; font-size: 1.1rem; border: 2px solid #fee2e2; }
+
+        /* RECEIPT STYLING */
+        #receiptSection { display: none; background: white; padding: 40px; border: 2px dashed #8914cc; color: #000; width: 100%; box-sizing: border-box; }
+        .receipt-header { text-align: center; border-bottom: 2px solid #8914cc; margin-bottom: 20px; padding-bottom: 10px; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 0.9rem; }
+        .receipt-label { font-weight: bold; text-transform: uppercase; }
+        .stamp { border: 3px solid #16a34a; color: #16a34a; padding: 10px; border-radius: 10px; font-weight: 900; transform: rotate(-15deg); display: inline-block; }
+        
+        @media print {
+            body { background: white; padding: 0; }
+            .container, #loginOverlay, .btn { display: none !important; }
+            #receiptSection { display: block !important; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h3 style="color: var(--primary)">Admin Access</h3>
+            <input type="text" id="user" placeholder="Username" style="margin-bottom:10px">
+            <input type="password" id="pass" placeholder="Password" style="margin-bottom:20px">
+            <button class="btn" onclick="checkLogin()">Login</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainApp">
+        <div id="formContainer">
+            <h2>Fee Tracker (Admin)</h2>
+            <form id="feeForm">
+                <div class="section-title">Identity & Info</div>
+                <div class="form-box">
+                    <div class="grid">
+                        <div class="form-group"><label>Date</label><input type="date" id="date" required></div>
+                        <div class="form-group"><label>Student Code</label><input type="text" id="student_code" required></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Student Full Name</label>
+                        <input type="text" id="student_name" placeholder="NAME SURNAME IN CAPITAL LETTERS" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="grid">
+                        <div class="form-group">
+                            <label>Standard</label>
+                            <select id="std" required>
+                                <option value="">Select...</option>
+                                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+                                <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+                                <option>11th Commerce</option><option>11th Arts</option>
+                                <option>12th Commerce</option><option>12th Arts</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Medium</label>
+                            <select id="medium" required><option value="">Select...</option><option>English</option><option>Gujarati</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Payment Transaction</div>
+                <div class="form-box">
+                    <div class="grid">
+                        <div class="form-group"><label>Amount Received (₹)</label><input type="number" id="amount" required></div>
+                        <div class="form-group"><label>Mode of Payment</label>
+                            <select id="mode" onchange="toggleModes()" required>
+                                <option value="">Select...</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="UPI">UPI</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="chequeSection" class="conditional-section">
+                        <div class="grid">
+                            <div class="form-group"><label>Cheque Number</label><input type="text" id="cheque_no"></div>
+                            <div class="form-group"><label>Bank Name</label><input type="text" id="bank_name"></div>
+                        </div>
+                        <div class="grid">
+                            <div class="form-group"><label>Branch Name</label><input type="text" id="branch_name"></div>
+                            <div class="form-group"><label>IFSC Code</label><input type="text" id="ifsc_code"></div>
+                        </div>
+                        <div class="form-group"><label>Account Holder Name</label><input type="text" id="acc_holder"></div>
+                    </div>
+
+                    <div id="upiSection" class="conditional-section">
+                        <div class="form-group"><label>Transaction ID</label><input type="text" id="trans_id"></div>
+                        <div class="grid">
+                            <div class="form-group"><label>Person Name</label><input type="text" id="upi_person"></div>
+                            <div class="form-group"><label>Mobile Number</label><input type="tel" id="upi_mobile"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Who Paid?</label>
+                        <select id="who_paid" onchange="toggleWhoPaid()" required>
+                            <option value="">Select Relation...</option>
+                            <option>Father</option><option>Mother</option><option>Uncle</option><option>Brother</option><option>Sister</option><option>Self</option><option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div id="otherPaidSection" class="conditional-section">
+                        <label>Specify Other</label><input type="text" id="other_paid_name">
+                    </div>
+                </div>
+
+                <div class="section-title">Accounting</div>
+                <div class="form-box">
+                    <div class="grid">
+                        <div class="form-group"><label>Total Fees (₹)</label><input type="number" id="total_fees" oninput="calcBalance()" required></div>
+                        <div class="form-group"><label>Total Credit (Paid)</label><input type="number" id="total_credit" oninput="calcBalance()" required></div>
+                    </div>
+                    <div class="balance-box">Remaining Balance: ₹ <span id="balanceDisp">0</span></div>
+                    <input type="hidden" id="balance" name="balance">
+                </div>
+                <button type="submit" class="btn" id="submitBtn">Save & Generate Receipt</button>
+            </form>
+        </div>
+
+        <div id="receiptSection">
+            <div class="receipt-header">
+                <h1 style="margin:0; color:#8914cc;">FEES RECEIPT</h1>
+                <p>Official Payment Acknowledgment</p>
+            </div>
+            <div class="receipt-row"><span class="receipt-label">Date:</span> <span id="r_date"></span></div>
+            <div class="receipt-row"><span class="receipt-label">Student:</span> <span id="r_name"></span></div>
+            <div class="receipt-row"><span class="receipt-label">Code:</span> <span id="r_code"></span></div>
+            <div class="receipt-row"><span class="receipt-label">Mode:</span> <span id="r_mode"></span></div>
+            <div id="r_payment_details" style="font-size:0.8rem; color:#475569; margin-bottom:10px;"></div>
+            <div style="background: #f8fafc; padding: 10px; margin: 15px 0;">
+                <div class="receipt-row" style="border:none;"><span class="receipt-label">Paid Amount:</span> <span style="font-weight:bold; color:#16a34a;">₹ <span id="r_amount"></span></span></div>
+                <div class="receipt-row" style="border:none; color:#b91c1c;"><span class="receipt-label">Balance:</span> <span>₹ <span id="r_balance"></span></span></div>
+            </div>
+            <div class="stamp">PAID</div>
+            <button class="btn" onclick="window.print()">Print Receipt</button>
+            <button class="btn" onclick="location.reload()" style="background:#64748b;">New Entry</button>
+        </div>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwsxJpM3zpx0mHNv7JzApmGTbhjtHWk2qrYsjECXGHzO7Op4y6F0D9hosAV7RGyP_BS/exec';
+        document.getElementById('date').valueAsDate = new Date();
+
+        function checkLogin() {
+            if(document.getElementById('user').value === "sadhana" && document.getElementById('pass').value === "sadhana2000") {
+                document.getElementById('loginOverlay').style.display = "none";
+                document.getElementById('mainApp').style.display = "block";
+            } else { alert("Access Denied"); }
+        }
+
+        function toggleModes() {
+            const m = document.getElementById('mode').value;
+            document.getElementById('chequeSection').style.display = (m === "Cheque") ? "block" : "none";
+            document.getElementById('upiSection').style.display = (m === "UPI") ? "block" : "none";
+        }
+
+        function toggleWhoPaid() {
+            document.getElementById('otherPaidSection').style.display = (document.getElementById('who_paid').value === "other") ? "block" : "none";
+        }
+
+        function calcBalance() {
+            const bal = (parseFloat(document.getElementById('total_fees').value) || 0) - (parseFloat(document.getElementById('total_credit').value) || 0);
+            document.getElementById('balanceDisp').innerText = bal;
+            document.getElementById('balance').value = bal;
+        }
+
+        document.getElementById('feeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.innerText = "Saving...";
+
+            const m = document.getElementById('mode').value;
+            let pDetails = "";
+            if(m === "Cheque") pDetails = `Chq No: ${document.getElementById('cheque_no').value} | Bank: ${document.getElementById('bank_name').value}`;
+            if(m === "UPI") pDetails = `Txn ID: ${document.getElementById('trans_id').value} | Name: ${document.getElementById('upi_person').value}`;
+
+            document.getElementById('r_date').innerText = document.getElementById('date').value;
+            document.getElementById('r_name').innerText = document.getElementById('student_name').value.toUpperCase();
+            document.getElementById('r_code').innerText = document.getElementById('student_code').value;
+            document.getElementById('r_mode').innerText = m;
+            document.getElementById('r_payment_details').innerText = pDetails;
+            document.getElementById('r_amount').innerText = document.getElementById('amount').value;
+            document.getElementById('r_balance').innerText = document.getElementById('balanceDisp').innerText;
+
+            const formData = new URLSearchParams(new FormData(this));
+            let who = document.getElementById('who_paid').value;
+            if(who === "other") who = document.getElementById('other_paid_name').value;
+            formData.append("who_paid_final", who);
+
+            fetch(scriptURL, { method: 'POST', body: formData })
+            .then(() => {
+                document.getElementById('formContainer').style.display = "none";
+                document.getElementById('receiptSection').style.display = "block";
+            }).catch(() => { alert("Error!"); btn.disabled = false; });
+        });
+    </script>
+</body>
+</html>
